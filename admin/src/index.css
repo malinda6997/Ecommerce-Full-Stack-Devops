@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-background: 0 0% 100%;
+    --color-foreground: 0 0% 0%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(0 0% 90%);
+  }
+  body {
+    background-color: white;
+    color: black;
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
