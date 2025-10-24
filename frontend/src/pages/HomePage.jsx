@@ -11,20 +11,36 @@ const HomePage = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="relative bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-black mb-6">
+      <section className="relative min-h-[600px] md:min-h-[700px] flex items-center overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1920&q=80"
+            alt="Mobile phones background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-linear-to-r from-black/80 via-black/60 to-black/40"></div>
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 w-full">
+          <div className="max-w-3xl">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 animate-fade-in-up">
               Discover Your Perfect
-              <span className="block mt-2">Mobile Device</span>
+              <span className="block mt-2 bg-linear-to-r from-white to-gray-300 bg-clip-text text-transparent animate-fade-in-up-delay-1">
+                Mobile Device
+              </span>
             </h1>
-            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl animate-fade-in-up-delay-2">
               Explore the latest smartphones from top brands. Premium quality,
-              competitive prices.
+              competitive prices, and unbeatable deals.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up-delay-3">
               <Link to="/categories">
-                <Button size="lg" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="w-full sm:w-auto bg-black text-white hover:bg-black/90 transition-all transform hover:scale-105"
+                >
                   Shop Now
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -33,12 +49,19 @@ const HomePage = () => {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto border-black bg-black text-white hover:bg-black/80 transition-all transform hover:scale-105"
                 >
                   Featured Products
                 </Button>
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce z-10">
+          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
           </div>
         </div>
       </section>
