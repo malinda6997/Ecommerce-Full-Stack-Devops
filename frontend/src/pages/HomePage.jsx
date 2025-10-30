@@ -1,12 +1,36 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { products, categories } from "@/data/products";
+import { productService, categoryService } from "@/services/apiService";
 import { ArrowRight, Star } from "lucide-react";
 
 const HomePage = () => {
-  const featuredProducts = products.filter((p) => p.featured).slice(0, 6);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [productsData, categoriesData] = await Promise.all([
+          productService.getFeaturedProducts(),
+          categoryService.getAllCategories()
+        ]);
+        
+        setFeaturedProducts(productsData.data.slice(0, 6));
+        setCategories(categoriesData.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -77,26 +101,30 @@ const HomePage = () => {
           </div>
 
           <div className="flex justify-center">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 max-w-5xl">
-              {categories.slice(1).map((category) => (
-                <Link
-                  key={category.id}
-                  to={`/categories?category=${category.id}`}
-                  className="group"
-                >
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                    <CardContent className="p-6 text-center">
-                      <h3 className="font-semibold text-black mb-1 group-hover:underline">
-                        {category.name}
-                      </h3>
-                      <p className="text-xs text-gray-600">
-                        {category.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center py-8">Loading categories...</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 max-w-5xl">
+                {categories.map((category) => (
+                  <Link
+                    key={category._id}
+                    to={`/categories?category=${category.name}`}
+                    className="group"
+                  >
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+                      <CardContent className="p-6 text-center">
+                        <h3 className="font-semibold text-black mb-1 group-hover:underline">
+                          {category.name}
+                        </h3>
+                        <p className="text-xs text-gray-600">
+                          {category.description}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -119,56 +147,60 @@ const HomePage = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredProducts.map((product) => (
-              <Link key={product.id} to={`/product/${product.id}`}>
-                <Card className="group hover:shadow-xl transition-shadow h-full">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-square overflow-hidden rounded-t-lg bg-gray-100">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      {product.featured && (
-                        <Badge className="absolute top-3 left-3">
-                          <Star className="h-3 w-3 mr-1 fill-current" />
-                          Featured
-                        </Badge>
-                      )}
-                      {!product.inStock && (
-                        <Badge
-                          variant="secondary"
-                          className="absolute top-3 right-3"
-                        >
-                          Out of Stock
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="p-4">
-                      <p className="text-xs text-gray-600 mb-1">
-                        {product.brand}
-                      </p>
-                      <h3 className="font-semibold text-black mb-2 group-hover:underline">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                        {product.description}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-black">
-                          ${product.price}
-                        </span>
-                        <Button size="sm" disabled={!product.inStock}>
-                          {product.inStock ? "View Details" : "Out of Stock"}
-                        </Button>
+          {loading ? (
+            <div className="text-center py-8">Loading products...</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredProducts.map((product) => (
+                <Link key={product._id} to={`/product/${product._id}`}>
+                  <Card className="group hover:shadow-xl transition-shadow h-full">
+                    <CardContent className="p-0">
+                      <div className="relative aspect-square overflow-hidden rounded-t-lg bg-gray-100">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        {product.featured && (
+                          <Badge className="absolute top-3 left-3">
+                            <Star className="h-3 w-3 mr-1 fill-current" />
+                            Featured
+                          </Badge>
+                        )}
+                        {product.stock === 0 && (
+                          <Badge
+                            variant="secondary"
+                            className="absolute top-3 right-3"
+                          >
+                            Out of Stock
+                          </Badge>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+                      <div className="p-4">
+                        <p className="text-xs text-gray-600 mb-1">
+                          {product.category}
+                        </p>
+                        <h3 className="font-semibold text-black mb-2 group-hover:underline">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          {product.description}
+                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold text-black">
+                            ${product.price}
+                          </span>
+                          <Button size="sm" disabled={product.stock === 0}>
+                            {product.stock > 0 ? "View Details" : "Out of Stock"}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
 
           <div className="mt-8 text-center md:hidden">
             <Link to="/categories?featured=true">

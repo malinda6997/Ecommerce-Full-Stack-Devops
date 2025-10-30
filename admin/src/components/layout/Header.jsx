@@ -1,13 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import Button from "@/components/ui/Button";
 import { LogOut, Bell, User } from "lucide-react";
+import { authService } from "@/services/apiService";
 
 export default function Header() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    navigate("/login");
+    authService.logout();
+    navigate("/");
   };
 
   return (

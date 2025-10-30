@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { Smartphone } from "lucide-react";
+import { authService } from "@/services/apiService";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -19,20 +20,33 @@ export default function LoginPage() {
     password: "",
   });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    // Simple authentication (in production, use proper auth)
-    if (
-      formData.email === "admin@phone4n.com" &&
-      formData.password === "admin123"
-    ) {
-      localStorage.setItem("isAuthenticated", "true");
-      navigate("/dashboard");
-    } else {
-      setError("Invalid credentials. Use admin@phone4n.com / admin123");
+    try {
+      const response = await authService.login(formData);
+
+      if (response.success) {
+        // Check if user has admin role
+        if (response.data.user.role === "admin") {
+          navigate("/dashboard");
+        } else {
+          setError("Access denied. Admin privileges required.");
+          authService.logout();
+        }
+      } else {
+        setError(response.message || "Login failed");
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Invalid credentials. Please try again."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,12 +105,12 @@ export default function LoginPage() {
                   {error}
                 </div>
               )}
-              <Button type="submit" className="w-full">
-                Sign in
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
             <div className="mt-4 text-sm text-gray-500 text-center">
-              Demo credentials: admin@phone4n.com / admin123
+              Note: You need to register an admin account first
             </div>
           </CardContent>
         </Card>

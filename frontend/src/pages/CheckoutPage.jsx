@@ -4,11 +4,14 @@ import Button from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useCart } from "@/hooks/useCart";
+import { orderService } from "@/services/apiService";
 import { ArrowLeft } from "lucide-react";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cart, getCartTotal, clearCart } = useCart();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -30,18 +33,53 @@ const CheckoutPage = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate order processing
-    setTimeout(() => {
-      clearCart();
-      navigate("/order-confirmation", {
-        state: {
-          orderNumber: Math.random().toString(36).substr(2, 9).toUpperCase(),
-          total: (getCartTotal() * 1.1).toFixed(2),
+    setLoading(true);
+    setError("");
+
+    try {
+      // Prepare order data
+      const orderData = {
+        items: cart.map(item => ({
+          productId: item._id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        })),
+        shippingAddress: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode
         },
-      });
-    }, 1000);
+        paymentMethod: 'card',
+        totalAmount: getCartTotal()
+      };
+
+      const response = await orderService.createOrder(orderData);
+
+      if (response.success) {
+        clearCart();
+        navigate("/order-confirmation", {
+          state: {
+            orderNumber: response.data._id,
+            total: response.data.totalAmount,
+          },
+        });
+      } else {
+        setError(response.message || "Failed to create order");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to create order. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (cart.length === 0) {
@@ -273,8 +311,14 @@ const CheckoutPage = () => {
                     </div>
                   </div>
 
-                  <Button type="submit" size="lg" className="w-full">
-                    Place Order
+                  {error && (
+                    <div className="text-sm text-red-500 bg-red-50 p-3 rounded-md">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                    {loading ? "Processing..." : "Place Order"}
                   </Button>
 
                   <p className="text-xs text-gray-600 text-center">
