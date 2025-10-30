@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import Button from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { products } from "@/data/products";
+import { productService } from "@/services/apiService";
 import { useCart } from "@/hooks/useCart";
 import {
   ShoppingCart,
@@ -19,20 +19,55 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [selectedColor, setSelectedColor] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const foundProduct = products.find((p) => p.id === parseInt(id));
-    setProduct(foundProduct);
-    if (foundProduct && foundProduct.colors.length > 0) {
-      setSelectedColor(foundProduct.colors[0]);
-    }
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await productService.getProductById(id);
+
+        if (response.success) {
+          setProduct(response.data);
+          if (response.data.colors && response.data.colors.length > 0) {
+            setSelectedColor(response.data.colors[0]);
+          }
+
+          // Fetch related products from same category
+          const relatedResponse = await productService.getAllProducts();
+          if (relatedResponse.success) {
+            const related = relatedResponse.data
+              .filter(
+                (p) =>
+                  p.category === response.data.category &&
+                  p._id !== response.data._id
+              )
+              .slice(0, 3);
+            setRelatedProducts(related);
+          }
+        } else {
+          setError("Product not found");
+        }
+      } catch (err) {
+        console.error("Failed to fetch product:", err);
+        setError("Failed to load product");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
   }, [id]);
 
   const handleAddToCart = () => {
-    if (!product || !product.inStock) return;
+    if (!product || product.stock <= 0) return;
 
     addToCart(product, quantity, selectedColor);
     setAddedToCart(true);
@@ -40,22 +75,28 @@ const ProductPage = () => {
   };
 
   const handleBuyNow = () => {
-    if (!product || !product.inStock) return;
+    if (!product || product.stock <= 0) return;
 
     addToCart(product, quantity, selectedColor);
     navigate("/cart");
   };
 
-  const relatedProducts = products
-    .filter((p) => p.brand === product?.brand && p.id !== product?.id)
-    .slice(0, 3);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-black mb-4">
-            Product not found
+            {error || "Product not found"}
           </h2>
           <Link to="/categories">
             <Button>Back to Products</Button>
@@ -98,15 +139,17 @@ const ProductPage = () => {
 
           {/* Product Info */}
           <div>
-            <p className="text-sm text-gray-600 mb-2">{product.brand}</p>
+            <p className="text-sm text-gray-600 mb-2 capitalize">
+              {product.category}
+            </p>
             <h1 className="text-3xl md:text-4xl font-bold text-black mb-4">
               {product.name}
             </h1>
 
-            {product.inStock ? (
+            {product.stock > 0 ? (
               <Badge variant="outline" className="mb-4">
                 <Check className="h-3 w-3 mr-1" />
-                In Stock
+                In Stock ({product.stock} available)
               </Badge>
             ) : (
               <Badge variant="secondary" className="mb-4">
@@ -125,26 +168,28 @@ const ProductPage = () => {
             </p>
 
             {/* Color Selection */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-black mb-3">
-                Color: <span className="font-normal">{selectedColor}</span>
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`px-4 py-2 rounded-md border-2 transition-all text-sm ${
-                      selectedColor === color
-                        ? "border-black bg-black text-white"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    {color}
-                  </button>
-                ))}
+            {product.colors && product.colors.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-black mb-3">
+                  Color: <span className="font-normal">{selectedColor}</span>
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.colors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`px-4 py-2 rounded-md border-2 transition-all text-sm ${
+                        selectedColor === color
+                          ? "border-black bg-black text-white"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity Selector */}
             <div className="mb-6">
@@ -154,15 +199,17 @@ const ProductPage = () => {
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     className="p-2 hover:bg-gray-100 transition-colors"
-                    disabled={!product.inStock}
+                    disabled={product.stock <= 0}
                   >
                     <Minus className="h-4 w-4" />
                   </button>
                   <span className="px-4 font-semibold">{quantity}</span>
                   <button
-                    onClick={() => setQuantity(quantity + 1)}
+                    onClick={() =>
+                      setQuantity(Math.min(product.stock, quantity + 1))
+                    }
                     className="p-2 hover:bg-gray-100 transition-colors"
-                    disabled={!product.inStock}
+                    disabled={product.stock <= 0}
                   >
                     <Plus className="h-4 w-4" />
                   </button>
@@ -176,7 +223,7 @@ const ProductPage = () => {
                 size="lg"
                 className="flex-1"
                 onClick={handleAddToCart}
-                disabled={!product.inStock}
+                disabled={product.stock <= 0}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 {addedToCart ? "Added to Cart!" : "Add to Cart"}
@@ -186,35 +233,37 @@ const ProductPage = () => {
                 variant="outline"
                 className="flex-1"
                 onClick={handleBuyNow}
-                disabled={!product.inStock}
+                disabled={product.stock <= 0}
               >
                 Buy Now
               </Button>
             </div>
 
             {/* Specifications */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-lg text-black mb-4">
-                  Specifications
-                </h3>
-                <div className="space-y-3">
-                  {Object.entries(product.specs).map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="flex border-b border-gray-100 pb-3 last:border-0 last:pb-0"
-                    >
-                      <span className="text-gray-600 capitalize w-1/3">
-                        {key}:
-                      </span>
-                      <span className="text-black font-medium flex-1">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {product.specs && Object.keys(product.specs).length > 0 && (
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="font-semibold text-lg text-black mb-4">
+                    Specifications
+                  </h3>
+                  <div className="space-y-3">
+                    {Object.entries(product.specs).map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex border-b border-gray-100 pb-3 last:border-0 last:pb-0"
+                      >
+                        <span className="text-gray-600 capitalize w-1/3">
+                          {key}:
+                        </span>
+                        <span className="text-black font-medium flex-1">
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
@@ -222,13 +271,13 @@ const ProductPage = () => {
         {relatedProducts.length > 0 && (
           <section>
             <h2 className="text-2xl md:text-3xl font-bold text-black mb-6">
-              More from {product.brand}
+              More from {product.category}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {relatedProducts.map((relatedProduct) => (
                 <Link
-                  key={relatedProduct.id}
-                  to={`/product/${relatedProduct.id}`}
+                  key={relatedProduct._id}
+                  to={`/product/${relatedProduct._id}`}
                 >
                   <Card className="group hover:shadow-xl transition-shadow h-full">
                     <CardContent className="p-0">
@@ -247,7 +296,10 @@ const ProductPage = () => {
                           <span className="text-xl font-bold text-black">
                             ${relatedProduct.price}
                           </span>
-                          <Button size="sm" disabled={!relatedProduct.inStock}>
+                          <Button
+                            size="sm"
+                            disabled={relatedProduct.stock <= 0}
+                          >
                             View
                           </Button>
                         </div>

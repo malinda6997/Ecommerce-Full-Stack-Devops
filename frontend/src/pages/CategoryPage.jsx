@@ -3,20 +3,52 @@ import { Link, useSearchParams } from "react-router-dom";
 import Button from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { products, categories } from "@/data/products";
+import { productService, categoryService } from "@/services/apiService";
 import { Star, Filter } from "lucide-react";
 
 const CategoryPage = () => {
   const [searchParams] = useSearchParams();
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [selectedBrand, setSelectedBrand] = useState("all");
   const [sortBy, setSortBy] = useState("featured");
   const [showFilters, setShowFilters] = useState(false);
-
-  const brands = ["all", ...new Set(products.map((p) => p.brand))];
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [productsRes, categoriesRes] = await Promise.all([
+        productService.getAllProducts(),
+        categoryService.getAllCategories(),
+      ]);
+
+      if (productsRes.success) {
+        setProducts(productsRes.data);
+        setFilteredProducts(productsRes.data);
+      }
+
+      if (categoriesRes.success) {
+        setCategories([
+          { _id: "all", name: "All Products" },
+          ...categoriesRes.data,
+        ]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!products.length) return;
+
     let filtered = [...products];
 
     // Filter by category from URL params
@@ -27,15 +59,7 @@ const CategoryPage = () => {
       filtered = filtered.filter((p) => p.featured);
     } else if (categoryParam) {
       setSelectedCategory(categoryParam);
-      if (
-        categoryParam === "apple" ||
-        categoryParam === "samsung" ||
-        categoryParam === "google"
-      ) {
-        filtered = filtered.filter(
-          (p) => p.brand.toLowerCase() === categoryParam
-        );
-      } else if (categoryParam !== "all") {
+      if (categoryParam !== "all") {
         filtered = filtered.filter((p) => p.category === categoryParam);
       }
     }
@@ -43,11 +67,6 @@ const CategoryPage = () => {
     // Filter by selected category
     if (selectedCategory !== "all" && !categoryParam) {
       filtered = filtered.filter((p) => p.category === selectedCategory);
-    }
-
-    // Filter by brand
-    if (selectedBrand !== "all") {
-      filtered = filtered.filter((p) => p.brand === selectedBrand);
     }
 
     // Sort products
@@ -68,14 +87,14 @@ const CategoryPage = () => {
     }
 
     setFilteredProducts(filtered);
-  }, [searchParams, selectedCategory, selectedBrand, sortBy]);
+  }, [searchParams, selectedCategory, sortBy, products]);
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 py-8 mx-auto max-w-7xl sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-black mb-2">
+          <h1 className="mb-2 text-3xl font-bold text-black md:text-4xl">
             {searchParams.get("featured") === "true"
               ? "Featured Products"
               : "All Products"}
@@ -86,7 +105,7 @@ const CategoryPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col gap-8 lg:flex-row">
           {/* Mobile Filter Toggle */}
           <div className="lg:hidden">
             <Button
@@ -94,7 +113,7 @@ const CategoryPage = () => {
               className="w-full"
               onClick={() => setShowFilters(!showFilters)}
             >
-              <Filter className="h-4 w-4 mr-2" />
+              <Filter className="w-4 h-4 mr-2" />
               Filters
             </Button>
           </div>
@@ -105,12 +124,12 @@ const CategoryPage = () => {
               showFilters ? "block" : "hidden lg:block"
             }`}
           >
-            <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-20">
-              <h2 className="font-semibold text-lg text-black mb-4">Filters</h2>
+            <div className="sticky p-6 bg-white border border-gray-200 rounded-lg top-20">
+              <h2 className="mb-4 text-lg font-semibold text-black">Filters</h2>
 
               {/* Category Filter */}
               <div className="mb-6">
-                <h3 className="font-medium text-black mb-3">Category</h3>
+                <h3 className="mb-3 font-medium text-black">Category</h3>
                 <div className="space-y-2">
                   {categories.map((category) => (
                     <button
@@ -128,33 +147,13 @@ const CategoryPage = () => {
                 </div>
               </div>
 
-              {/* Brand Filter */}
-              <div className="mb-6">
-                <h3 className="font-medium text-black mb-3">Brand</h3>
-                <div className="space-y-2">
-                  {brands.map((brand) => (
-                    <button
-                      key={brand}
-                      onClick={() => setSelectedBrand(brand)}
-                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors capitalize ${
-                        selectedBrand === brand
-                          ? "bg-black text-white"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      {brand}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Sort By */}
               <div>
-                <h3 className="font-medium text-black mb-3">Sort By</h3>
+                <h3 className="mb-3 font-medium text-black">Sort By</h3>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
                 >
                   <option value="featured">Featured</option>
                   <option value="price-low">Price: Low to High</option>
@@ -169,7 +168,6 @@ const CategoryPage = () => {
                 className="w-full mt-6"
                 onClick={() => {
                   setSelectedCategory("all");
-                  setSelectedBrand("all");
                   setSortBy("featured");
                 }}
               >
@@ -180,40 +178,43 @@ const CategoryPage = () => {
 
           {/* Products Grid */}
           <div className="flex-1">
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-16">
-                <h3 className="text-xl font-semibold text-black mb-2">
+            {loading ? (
+              <div className="py-16 text-center">
+                <p className="text-gray-600">Loading products...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="py-16 text-center">
+                <h3 className="mb-2 text-xl font-semibold text-black">
                   No products found
                 </h3>
-                <p className="text-gray-600 mb-6">Try adjusting your filters</p>
+                <p className="mb-6 text-gray-600">Try adjusting your filters</p>
                 <Button
                   onClick={() => {
                     setSelectedCategory("all");
-                    setSelectedBrand("all");
                   }}
                 >
                   Clear Filters
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredProducts.map((product) => (
-                  <Link key={product.id} to={`/product/${product.id}`}>
-                    <Card className="group hover:shadow-xl transition-shadow h-full">
+                  <Link key={product._id} to={`/product/${product._id}`}>
+                    <Card className="h-full transition-shadow group hover:shadow-xl">
                       <CardContent className="p-0">
-                        <div className="relative aspect-square overflow-hidden rounded-t-lg bg-gray-100">
+                        <div className="relative overflow-hidden bg-gray-100 rounded-t-lg aspect-square">
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                           />
                           {product.featured && (
                             <Badge className="absolute top-3 left-3">
-                              <Star className="h-3 w-3 mr-1 fill-current" />
+                              <Star className="w-3 h-3 mr-1 fill-current" />
                               Featured
                             </Badge>
                           )}
-                          {!product.inStock && (
+                          {product.stock <= 0 && (
                             <Badge
                               variant="secondary"
                               className="absolute top-3 right-3"
@@ -223,21 +224,21 @@ const CategoryPage = () => {
                           )}
                         </div>
                         <div className="p-4">
-                          <p className="text-xs text-gray-600 mb-1">
-                            {product.brand}
+                          <p className="mb-1 text-xs text-gray-600 capitalize">
+                            {product.category}
                           </p>
-                          <h3 className="font-semibold text-black mb-2 group-hover:underline">
+                          <h3 className="mb-2 font-semibold text-black group-hover:underline">
                             {product.name}
                           </h3>
-                          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                          <p className="mb-3 text-sm text-gray-600 line-clamp-2">
                             {product.description}
                           </p>
                           <div className="flex items-center justify-between">
                             <span className="text-2xl font-bold text-black">
                               ${product.price}
                             </span>
-                            <Button size="sm" disabled={!product.inStock}>
-                              {product.inStock ? "View" : "Out of Stock"}
+                            <Button size="sm" disabled={product.stock <= 0}>
+                              {product.stock > 0 ? "View" : "Out of Stock"}
                             </Button>
                           </div>
                         </div>
