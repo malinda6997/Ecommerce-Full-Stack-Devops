@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import { Card, CardContent, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -12,88 +12,53 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { Search, Eye, Package } from "lucide-react";
-
-const initialOrders = [
-  {
-    id: "#3210",
-    customer: "John Doe",
-    email: "john@example.com",
-    product: "iPhone 15 Pro",
-    amount: "$1,199",
-    status: "Completed",
-    date: "2024-01-15",
-  },
-  {
-    id: "#3209",
-    customer: "Jane Smith",
-    email: "jane@example.com",
-    product: "Samsung S24 Ultra",
-    amount: "$1,299",
-    status: "Processing",
-    date: "2024-01-14",
-  },
-  {
-    id: "#3208",
-    customer: "Mike Johnson",
-    email: "mike@example.com",
-    product: "Google Pixel 8 Pro",
-    amount: "$999",
-    status: "Completed",
-    date: "2024-01-14",
-  },
-  {
-    id: "#3207",
-    customer: "Sarah Williams",
-    email: "sarah@example.com",
-    product: "OnePlus 12",
-    amount: "$799",
-    status: "Pending",
-    date: "2024-01-13",
-  },
-  {
-    id: "#3206",
-    customer: "Tom Brown",
-    email: "tom@example.com",
-    product: "Xiaomi 14 Pro",
-    amount: "$899",
-    status: "Shipped",
-    date: "2024-01-13",
-  },
-  {
-    id: "#3205",
-    customer: "Lisa Davis",
-    email: "lisa@example.com",
-    product: "iPhone 14 Pro",
-    amount: "$999",
-    status: "Completed",
-    date: "2024-01-12",
-  },
-];
+import { orderService } from "@/services/apiService";
 
 export default function OrdersPage() {
-  const [orders] = useState(initialOrders);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
 
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await orderService.getAllOrders();
+      if (response.success) {
+        setOrders(response.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.email.toLowerCase().includes(searchTerm.toLowerCase());
+      order._id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.shippingAddress?.firstName
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      order.shippingAddress?.email
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesStatus =
       filterStatus === "All" || order.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status) => {
-    const variants = {
-      Completed: "success",
-      Processing: "default",
-      Pending: "warning",
-      Shipped: "secondary",
-      Cancelled: "destructive",
-    };
-    return <Badge variant={variants[status] || "default"}>{status}</Badge>;
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      await orderService.updateOrderStatus(orderId, { status: newStatus });
+      fetchOrders();
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to update order status");
+    }
   };
 
   const statusOptions = [
@@ -107,7 +72,7 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Orders</h2>
           <p className="text-gray-500">Manage customer orders</p>
@@ -116,9 +81,9 @@ export default function OrdersPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute w-4 h-4 text-gray-400 transform -translate-y-1/2 left-3 top-1/2" />
               <Input
                 placeholder="Search orders by ID, customer, or email..."
                 className="pl-10"
@@ -141,47 +106,82 @@ export default function OrdersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredOrders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell className="font-medium">{order.id}</TableCell>
-                    <TableCell>{order.customer}</TableCell>
-                    <TableCell>{order.email}</TableCell>
-                    <TableCell>{order.product}</TableCell>
-                    <TableCell className="font-medium">
-                      {order.amount}
-                    </TableCell>
-                    <TableCell>{order.date}</TableCell>
-                    <TableCell>{getStatusBadge(order.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <Package className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {loading ? (
+            <div className="py-8 text-center">Loading orders...</div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">
+              No orders found
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Items</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order._id}>
+                      <TableCell className="font-medium">
+                        #{order._id.slice(-6)}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">
+                            {order.shippingAddress?.firstName}{" "}
+                            {order.shippingAddress?.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {order.shippingAddress?.email}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{order.items?.length || 0} item(s)</TableCell>
+                      <TableCell className="font-medium">
+                        ${order.totalAmount}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <select
+                          value={order.status}
+                          onChange={(e) =>
+                            handleUpdateStatus(order._id, e.target.value)
+                          }
+                          className="px-2 py-1 text-sm border rounded"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
