@@ -1,11 +1,11 @@
-import { MongoClient } from 'mongodb';
-import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
+import { MongoClient } from "mongodb";
+import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
-const dbName = process.env.DB_NAME || 'ecommerce_db';
+const dbName = process.env.DB_NAME || "ecommerce_db";
 
 const sampleProducts = [
   {
@@ -17,7 +17,7 @@ const sampleProducts = [
     stock: 50,
     featured: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     name: "Samsung Galaxy S24",
@@ -28,7 +28,7 @@ const sampleProducts = [
     stock: 45,
     featured: true,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     name: "Google Pixel 8",
@@ -39,7 +39,7 @@ const sampleProducts = [
     stock: 30,
     featured: false,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     name: "OnePlus 12",
@@ -50,7 +50,7 @@ const sampleProducts = [
     stock: 40,
     featured: false,
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     name: "iPhone 14",
@@ -61,8 +61,8 @@ const sampleProducts = [
     stock: 60,
     featured: true,
     createdAt: new Date(),
-    updatedAt: new Date()
-  }
+    updatedAt: new Date(),
+  },
 ];
 
 const sampleCategories = [
@@ -71,22 +71,22 @@ const sampleCategories = [
     description: "Latest mobile phones from top brands",
     image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=500",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     name: "Accessories",
     description: "Phone cases, chargers, and more",
     image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500",
     createdAt: new Date(),
-    updatedAt: new Date()
+    updatedAt: new Date(),
   },
   {
     name: "Tablets",
     description: "Tablets and iPads",
     image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=500",
     createdAt: new Date(),
-    updatedAt: new Date()
-  }
+    updatedAt: new Date(),
+  },
 ];
 
 async function seedDatabase() {
@@ -94,62 +94,65 @@ async function seedDatabase() {
 
   try {
     await client.connect();
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
 
     const db = client.db(dbName);
 
     // Clear existing data
-    await db.collection('products').deleteMany({});
-    await db.collection('categories').deleteMany({});
-    await db.collection('users').deleteMany({});
-    console.log('Cleared existing data');
+    await db.collection("products").deleteMany({});
+    await db.collection("categories").deleteMany({});
+    await db.collection("users").deleteMany({});
+    console.log("Cleared existing data");
 
     // Insert categories
-    const categoryResult = await db.collection('categories').insertMany(sampleCategories);
+    const categoryResult = await db
+      .collection("categories")
+      .insertMany(sampleCategories);
     console.log(`Inserted ${categoryResult.insertedCount} categories`);
 
     // Insert products
-    const productResult = await db.collection('products').insertMany(sampleProducts);
+    const productResult = await db
+      .collection("products")
+      .insertMany(sampleProducts);
     console.log(`Inserted ${productResult.insertedCount} products`);
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash("admin123", 10);
     const adminUser = {
-      name: 'Admin',
-      email: 'admin@phone4n.com',
+      name: "Admin",
+      email: "admin@phone4n.com",
       password: hashedPassword,
-      role: 'admin',
+      role: "admin",
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    await db.collection('users').insertOne(adminUser);
-    console.log('Created admin user');
+    await db.collection("users").insertOne(adminUser);
+    console.log("Created admin user");
 
     // Create regular user
-    const userPassword = await bcrypt.hash('user123', 10);
+    const userPassword = await bcrypt.hash("user123", 10);
     const regularUser = {
-      name: 'John Doe',
-      email: 'user@example.com',
+      name: "John Doe",
+      email: "user@example.com",
       password: userPassword,
-      role: 'user',
+      role: "user",
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
-    await db.collection('users').insertOne(regularUser);
-    console.log('Created regular user');
+    await db.collection("users").insertOne(regularUser);
+    console.log("Created regular user");
 
-    console.log('\n✅ Database seeded successfully!');
-    console.log('\nAdmin credentials:');
-    console.log('Email: admin@phone4n.com');
-    console.log('Password: admin123');
-    console.log('\nUser credentials:');
-    console.log('Email: user@example.com');
-    console.log('Password: user123');
-
+    console.log("\n✅ Database seeded successfully!");
+    console.log("\nAdmin credentials:");
+    console.log("Email: admin@phone4n.com");
+    console.log("Password: admin123");
+    console.log("\nUser credentials:");
+    console.log("Email: user@example.com");
+    console.log("Password: user123");
   } catch (error) {
-    console.error('Error seeding database:', error);
+    console.error("Error seeding database:", error);
   } finally {
     await client.close();
   }

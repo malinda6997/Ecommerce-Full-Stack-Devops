@@ -17,13 +17,13 @@ const HomePage = () => {
         setLoading(true);
         const [productsData, categoriesData] = await Promise.all([
           productService.getFeaturedProducts(),
-          categoryService.getAllCategories()
+          categoryService.getAllCategories(),
         ]);
-        
+
         setFeaturedProducts(productsData.data.slice(0, 6));
         setCategories(categoriesData.data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
@@ -191,7 +191,9 @@ const HomePage = () => {
                             ${product.price}
                           </span>
                           <Button size="sm" disabled={product.stock === 0}>
-                            {product.stock > 0 ? "View Details" : "Out of Stock"}
+                            {product.stock > 0
+                              ? "View Details"
+                              : "Out of Stock"}
                           </Button>
                         </div>
                       </div>

@@ -41,12 +41,12 @@ const CheckoutPage = () => {
     try {
       // Prepare order data
       const orderData = {
-        items: cart.map(item => ({
+        items: cart.map((item) => ({
           productId: item._id,
           name: item.name,
           price: item.price,
           quantity: item.quantity,
-          image: item.image
+          image: item.image,
         })),
         shippingAddress: {
           firstName: formData.firstName,
@@ -56,10 +56,10 @@ const CheckoutPage = () => {
           address: formData.address,
           city: formData.city,
           state: formData.state,
-          zipCode: formData.zipCode
+          zipCode: formData.zipCode,
         },
-        paymentMethod: 'card',
-        totalAmount: getCartTotal()
+        paymentMethod: "card",
+        totalAmount: getCartTotal(),
       };
 
       const response = await orderService.createOrder(orderData);
@@ -76,7 +76,10 @@ const CheckoutPage = () => {
         setError(response.message || "Failed to create order");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create order. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to create order. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -317,7 +320,12 @@ const CheckoutPage = () => {
                     </div>
                   )}
 
-                  <Button type="submit" size="lg" className="w-full" disabled={loading}>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="w-full"
+                    disabled={loading}
+                  >
                     {loading ? "Processing..." : "Place Order"}
                   </Button>
 

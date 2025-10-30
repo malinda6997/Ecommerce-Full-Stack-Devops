@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-  { name: "Products", icon: Package, path: "/products" },
-  { name: "Orders", icon: ShoppingCart, path: "/orders" },
-  { name: "Categories", icon: FolderOpen, path: "/categories" },
-  { name: "Settings", icon: Settings, path: "/settings" },
+  { name: "Products", icon: Package, path: "/dashboard/products" },
+  { name: "Orders", icon: ShoppingCart, path: "/dashboard/orders" },
+  { name: "Categories", icon: FolderOpen, path: "/dashboard/categories" },
+  { name: "Settings", icon: Settings, path: "/dashboard/settings" },
 ];
 
 export default function Sidebar() {
